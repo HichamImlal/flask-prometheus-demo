@@ -1,0 +1,2 @@
+flask==2.0.1
+pickle-mixin==1.0.2  # Outdated/insecure dependency
