@@ -90,26 +90,5 @@ EOL
             }
         }
         
-        stage('Dependency-Check') {
-            steps {
-                sh 'mkdir -p ${WORKSPACE}/dependency-check-data'
-                dependencyCheck(
-                    odcInstallation: 'dc',
-                    additionalArguments: """
-                        --scan . 
-                        --format XML 
-                        --nvdApiKey ${env.NVD_API_KEY}
-                        --data ${WORKSPACE}/dependency-check-data
-                        --disableRetireJS
-                    """
-                )
-                archiveArtifacts artifacts: 'dependency-check-report.xml', allowEmptyArchive: true
-            }
-            post {
-                always {
-                    sh 'rm -rf ${WORKSPACE}/dependency-check-data'  // Cleanup
-                }
-            }
-        }
     }
 }
