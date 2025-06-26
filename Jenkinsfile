@@ -1,9 +1,9 @@
 pipeline {
     agent any
     environment {
-        SONAR_HOST_URL = "http://192.168.214.128:9000"  // Kali's SonarQube
-        SONAR_TOKEN = credentials('Flask-demo-token')   // Jenkins-stored token
-        NVD_API_KEY = credentials('nvd')                // NVD API key
+        SONAR_HOST_URL = "http://192.168.214.128:9000"
+        SONAR_TOKEN = credentials('Flask-demo-token')
+        NVD_API_KEY = credentials('nvd')
     }
     stages {
         stage('Checkout') {
@@ -62,13 +62,13 @@ def test_metrics_endpoint(client):
 EOL
                 fi
 
-                python3 -m pytest tests/ --junitxml=test-results.xml || echo "Pytest completed"
+                python3 -m pytest tests/ --junitxml=test-results.xml --cov=app --cov-report=xml:coverage.xml || echo "Pytest completed"
                 '''
             }
             post {
                 always {
                     junit 'test-results.xml'
-                    archiveArtifacts 'test-results.xml'
+                    archiveArtifacts artifacts: 'test-results.xml,coverage.xml', allowEmptyArchive: true
                 }
             }
         }
@@ -83,7 +83,8 @@ EOL
                     -Dsonar.sources=. \
                     -Dsonar.python.version=3 \
                     -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=${SONAR_TOKEN}
+                    -Dsonar.login=${SONAR_TOKEN} \
+                    -Dsonar.python.coverage.reportPaths=coverage.xml
                     '''
                 }
             }
@@ -91,6 +92,7 @@ EOL
         
         stage('Dependency-Check') {
             steps {
+                sh 'mkdir -p ${WORKSPACE}/dependency-check-data'
                 dependencyCheck(
                     odcInstallation: 'dc',
                     additionalArguments: """
@@ -101,7 +103,12 @@ EOL
                         --disableRetireJS
                     """
                 )
-                archiveArtifacts artifacts: 'dependency-check-report.xml'
+                archiveArtifacts artifacts: 'dependency-check-report.xml', allowEmptyArchive: true
+            }
+            post {
+                always {
+                    sh 'rm -rf ${WORKSPACE}/dependency-check-data'  // Cleanup
+                }
             }
         }
     }
