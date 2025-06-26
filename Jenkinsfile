@@ -90,23 +90,19 @@ EOL
         }
         
         stage('Dependency-Check') {
-    steps {
-        sh '''
-            export JAVA_OPTS="-Xmx2G"
-
-            dependency-check.sh \
-                --project FlaskDemo \
-                --scan . \
-                --format XML \
-                --nvdApiKey $NVD_API_KEY \
-                --data ./dependency-check-data \
-                --disableRetireJS \
-                --out .
-
-        '''
-        archiveArtifacts artifacts: 'dependency-check-report.xml'
-    }
-}
-
+            steps {
+                dependencyCheck(
+                    odcInstallation: 'dc',
+                    additionalArguments: """
+                        --scan . 
+                        --format XML 
+                        --nvdApiKey ${env.NVD_API_KEY}
+                        --data ${WORKSPACE}/dependency-check-data
+                        --disableRetireJS
+                    """
+                )
+                archiveArtifacts artifacts: 'dependency-check-report.xml'
+            }
+        }
     }
 }
