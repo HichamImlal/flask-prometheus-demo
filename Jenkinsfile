@@ -93,17 +93,15 @@ EOL
     steps {
         dependencyCheck(
             odcInstallation: 'dc',
-            jvmArgs: '-Xmx2G',
-            dataDirectory: "${WORKSPACE}/dependency-check-data",
-            failBuildOnCVSS: '11',
-            isVerboseLoggingEnabled: false,
-            outdir: "${WORKSPACE}",
-            additionalArguments: [
-                '--scan', '.',
-                '--format', 'XML',
-                "--nvdApiKey=${NVD_API_KEY}",
-                '--disableRetireJS'
-            ].join(' ')
+            additionalArguments: """
+                --scan . \
+                --format XML \
+                --nvdApiKey=${NVD_API_KEY} \
+                --data ${WORKSPACE}/dependency-check-data \
+                --disableRetireJS
+            """,
+            failBuildOnCVSS: 11,
+            suppressionFile: ''
         )
         archiveArtifacts artifacts: 'dependency-check-report.xml'
     }
