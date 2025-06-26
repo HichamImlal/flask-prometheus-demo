@@ -90,19 +90,24 @@ EOL
         }
         
         stage('Dependency-Check') {
-            steps {
-                dependencyCheck(
-                    odcInstallation: 'dc',
-                    additionalArguments: """
-                        --scan . 
-                        --format XML 
-                        --nvdApiKey ${env.NVD_API_KEY}
-                        --data ${WORKSPACE}/dependency-check-data
-                        --disableRetireJS
-                    """
-                )
-                archiveArtifacts artifacts: 'dependency-check-report.xml'
-            }
-        }
+    steps {
+        dependencyCheck(
+            odcInstallation: 'dc',
+            jvmArgs: '-Xmx2G',
+            dataDirectory: "${WORKSPACE}/dependency-check-data",
+            failBuildOnCVSS: '11',
+            isVerboseLoggingEnabled: false,
+            outdir: "${WORKSPACE}",
+            additionalArguments: [
+                '--scan', '.',
+                '--format', 'XML',
+                "--nvdApiKey=${NVD_API_KEY}",
+                '--disableRetireJS'
+            ].join(' ')
+        )
+        archiveArtifacts artifacts: 'dependency-check-report.xml'
+    }
+}
+
     }
 }
