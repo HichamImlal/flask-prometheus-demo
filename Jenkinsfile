@@ -99,9 +99,7 @@ EOL
                 --nvdApiKey=${NVD_API_KEY} \
                 --data ${WORKSPACE}/dependency-check-data \
                 --disableRetireJS
-            """,
-            failBuildOnCVSS: 11,
-            suppressionFile: ''
+            """
         )
         archiveArtifacts artifacts: 'dependency-check-report.xml'
     }
