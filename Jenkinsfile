@@ -2,7 +2,8 @@ pipeline {
     agent any
     environment {
         SONAR_HOST_URL = "http://192.168.214.128:9000"  // Kali's SonarQube
-        SONAR_TOKEN = credentials('Flask-demo-token')     // Jenkins-stored token
+        SONAR_TOKEN = credentials('Flask-demo-token')   // Jenkins-stored token
+        NVD_API_KEY = credentials('nvd')                // NVD API key
     }
     stages {
         stage('Checkout') {
@@ -18,7 +19,6 @@ pipeline {
                 sh 'python3 -m pip install -r requirements.txt'
                 sh 'python3 -m pip freeze > requirements_frozen.txt'
                 
-                // Only include existing files/directories
                 sh '''
                     files_to_archive="app.py requirements.txt"
                     [ -d static ] && files_to_archive="$files_to_archive static"
@@ -38,12 +38,9 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
-                # Create tests directory if it doesn't exist
                 mkdir -p tests
                 
-                # Create a basic test file if none exists
                 if [ ! -f "tests/test_app.py" ]; then
-                    echo "Creating basic test file..."
                     cat > tests/test_app.py <<EOL
 from app import app
 import pytest
@@ -55,19 +52,16 @@ def client():
         yield client
 
 def test_health_check(client):
-    """Basic health check test"""
     response = client.get("/")
     assert response.status_code == 200
 
 def test_metrics_endpoint(client):
-    """Test Prometheus metrics endpoint"""
     response = client.get("/metrics")
     assert response.status_code == 200
     assert b'flask_http_request_total' in response.data
 EOL
                 fi
 
-                # Run pytest (will succeed even if no tests are found)
                 python3 -m pytest tests/ --junitxml=test-results.xml || echo "Pytest completed"
                 '''
             }
@@ -95,20 +89,20 @@ EOL
             }
         }
         
-      stage('Dependency-Check') {
-    steps {
-        dependencyCheck(
-            odcInstallation: 'dc',
-            additionalArguments: """
-                --scan . 
-                --format XML 
-                --nvdApiKey ${credentials('nvd')}
-                --disableNexus
-                --data /var/lib/jenkins/dependency-check-data
-            """
-        )
-    }
-}
-
+        stage('Dependency-Check') {
+            steps {
+                dependencyCheck(
+                    odcInstallation: 'dc',
+                    additionalArguments: """
+                        --scan . 
+                        --format XML 
+                        --nvdApiKey ${env.NVD_API_KEY}
+                        --data ${WORKSPACE}/dependency-check-data
+                        --disableRetireJS
+                    """
+                )
+                archiveArtifacts artifacts: 'dependency-check-report.xml'
+            }
+        }
     }
 }
