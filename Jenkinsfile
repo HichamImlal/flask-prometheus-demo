@@ -91,16 +91,19 @@ EOL
         
         stage('Dependency-Check') {
     steps {
-        dependencyCheck(
-            odcInstallation: 'dc',
-            additionalArguments: """
+        sh '''
+            export JAVA_OPTS="-Xmx2G"
+
+            dependency-check.sh \
+                --project FlaskDemo \
                 --scan . \
                 --format XML \
-                --nvdApiKey=${NVD_API_KEY} \
-                --data ${WORKSPACE}/dependency-check-data \
-                --disableRetireJS
-            """
-        )
+                --nvdApiKey $NVD_API_KEY \
+                --data ./dependency-check-data \
+                --disableRetireJS \
+                --out .
+
+        '''
         archiveArtifacts artifacts: 'dependency-check-report.xml'
     }
 }
