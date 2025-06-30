@@ -89,6 +89,20 @@ EOL
                 }
             }
         }
+        stage('Dependency-Check') {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    dependencyCheck additionalArguments: "--nvdApiKey ${NVD_API_KEY}",
+                                    odcInstallation: 'dc'
+                    
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
+                                            allowEmptyArchive: true,
+                                            artifact: 'dependency-check-report.xml',
+                                            fingerprint: true
+                }
+                sh 'rm -rf dependency-check-report.xml*'
+            }
+        }
         
     }
 }
