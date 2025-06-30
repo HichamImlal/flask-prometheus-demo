@@ -95,10 +95,7 @@ EOL
                     dependencyCheck additionalArguments: "--nvdApiKey ${NVD_API_KEY}",
                                     odcInstallation: 'dc'
                     
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
-                                            allowEmptyArchive: true,
-                                            artifact: 'dependency-check-report.xml',
-                                            fingerprint: true
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
                 }
                 sh 'rm -rf dependency-check-report.xml*'
             }
