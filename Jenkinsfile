@@ -3,6 +3,7 @@ pipeline {
     environment {
         SONAR_HOST_URL = "http://192.168.214.128:9000"
         SONAR_TOKEN = credentials('jenkins-token')
+        NVD_API_KEY = credentials('nvd')
     }
     stages {
         stage('Checkout') {
@@ -98,6 +99,7 @@ EOL
                                 --format XML 
                                 --out ./ 
                                 --disableArchive 
+                                --nvdApiKey ${NVD_API_KEY} 
                                 --data /var/lib/jenkins/dependency-check-data
                                 """,
                                 odcInstallation: 'dc'
