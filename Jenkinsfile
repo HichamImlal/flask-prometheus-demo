@@ -90,16 +90,38 @@ EOL
             }
         }
         stage('Dependency-Check') {
-            steps {
-                timeout(time: 30, unit: 'MINUTES') {
-                    dependencyCheck additionalArguments: "--nvdApiKey ${NVD_API_KEY}",
-                                    odcInstallation: 'dc'
-                    
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+    environment {
+        // Secure way to handle NVD API key
+        DC_ARGS = credentials('nvd') ? "--nvdApiKey ${env.NVD_API_KEY}" : ""
+    }
+    steps {
+        timeout(time: 30, unit: 'MINUTES') {
+            script {
+                // Memory optimization for Dependency-Check
+                withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
+                    dependencyCheck additionalArguments: """
+                        --scan ./ 
+                        --format XML 
+                        --out ./ 
+                        --disableArchive 
+                        --nvdApiKey ${NVD_API_KEY} 
+                        --data /var/lib/jenkins/dependency-check-data
+                        ${DC_ARGS}
+                        """,
+                        odcInstallation: 'dc'
                 }
-                sh 'rm -rf dependency-check-report.xml*'
             }
         }
+        
+        dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
+                                allowEmptyArchive: true,
+                                artifact: 'dependency-check-report.xml',
+                                fingerprint: true
+        
+        // Cleanup
+        sh 'rm -rf dependency-check-report.xml*'
+    }
+}
         
     }
 }
