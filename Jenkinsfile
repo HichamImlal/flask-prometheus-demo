@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         SONAR_HOST_URL = "http://192.168.214.128:9000"
-        SONAR_TOKEN = credentials('jenkins-token')
+        SONAR_TOKEN = credentials('sonar')
         NVD_API_KEY = credentials('nvd')
     }
     stages {
