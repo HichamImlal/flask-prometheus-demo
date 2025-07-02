@@ -1,2 +1,4 @@
 flask==2.0.1
 pickle-mixin==1.0.2  # Outdated/insecure dependency
+requests==2.19.1
+pyyaml==3.12
