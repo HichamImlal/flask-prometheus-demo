@@ -95,7 +95,7 @@ EOL
             script {
                 withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
                     dependencyCheck additionalArguments: """
-                        --scan ./
+                        --scan Pipfile.lock
                         --format XML --format HTML
                         --out ./dependency-check-report 
                         --disableArchive 
