@@ -95,8 +95,8 @@ EOL
             script {
                 withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
                     dependencyCheck additionalArguments: """
-                        --scan ./ 
-                        --format XML --format HTML
+                        --scan requirements_frozen.txt
+                        --format XML,HTML
                         --out ./dependency-check-report 
                         --disableArchive 
                         --nvdApiKey ${NVD_API_KEY} 
