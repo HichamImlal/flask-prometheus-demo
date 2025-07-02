@@ -94,22 +94,32 @@ EOL
         timeout(time: 30, unit: 'MINUTES') {
             script {
                 withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
-                    dependencyCheck additionalArguments: """
-                        --scan ./
-                        --format XML --format HTML
-                        --out ./dependency-check-report 
-                        --enableExperimental  <!-- CRITICAL FOR PYTHON SUPPORT -->
-                        --disableArchive 
-                        --nvdApiKey ${NVD_API_KEY} 
-                        --data /var/lib/jenkins/dependency-check-data
-                        --project "Flask-demo-token"
-                        """,
+                    // Secure way to pass arguments
+                    def additionalArgs = [
+                        '--scan', './',
+                        '--format', 'XML',
+                        '--format', 'HTML',
+                        '--out', './dependency-check-report',
+                        '--enableExperimental',
+                        '--disableArchive',
+                        '--data', '/var/lib/jenkins/dependency-check-data',
+                        '--project', 'Flask-demo-token'
+                    ]
+                    
+                    // Only add NVD API key if it exists
+                    if (NVD_API_KEY) {
+                        additionalArgs.addAll(['--nvdApiKey', NVD_API_KEY])
+                    }
+                    
+                    dependencyCheck(
+                        additionalArguments: additionalArgs.join(' '),
                         odcInstallation: 'dc'
+                    )
                 }
             }
         }
 
-        // Archive and publish reports
+        // Publish results
         dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
         archiveArtifacts artifacts: 'dependency-check-report/*.*', fingerprint: true
         publishHTML(target: [
