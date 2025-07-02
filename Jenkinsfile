@@ -96,7 +96,7 @@ EOL
                 withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
                     dependencyCheck additionalArguments: """
                         --scan requirements_frozen.txt
-                        --format XML,HTML
+                        --format XML --format HTML
                         --out ./dependency-check-report 
                         --disableArchive 
                         --nvdApiKey ${NVD_API_KEY} 
