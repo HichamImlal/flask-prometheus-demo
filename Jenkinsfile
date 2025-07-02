@@ -96,7 +96,7 @@ EOL
                 withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
                     dependencyCheck additionalArguments: """
                         --scan ./ 
-                        --format XML,HTML 
+                        --format XML --format HTML
                         --out ./dependency-check-report 
                         --disableArchive 
                         --nvdApiKey ${NVD_API_KEY} 
@@ -106,7 +106,7 @@ EOL
                 }
             }
         }
-        
+
         // Publish the XML report to Jenkins UI (optional)
         dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
 
