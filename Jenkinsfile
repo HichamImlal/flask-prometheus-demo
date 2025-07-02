@@ -95,25 +95,23 @@ EOL
             script {
                 withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
                     dependencyCheck additionalArguments: """
-                        --scan Pipfile.lock
+                        --scan ./
                         --format XML --format HTML
                         --out ./dependency-check-report 
+                        --enableExperimental  <!-- CRITICAL FOR PYTHON SUPPORT -->
                         --disableArchive 
                         --nvdApiKey ${NVD_API_KEY} 
                         --data /var/lib/jenkins/dependency-check-data
+                        --project "Flask-demo-token"
                         """,
                         odcInstallation: 'dc'
                 }
             }
         }
 
-        // Publish the XML report to Jenkins UI (optional)
+        // Archive and publish reports
         dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
-
-        // Archive XML report as artifact (optional)
-        archiveArtifacts artifacts: 'dependency-check-report/dependency-check-report.xml', fingerprint: true
-
-        // Publish the HTML report via Jenkins HTML Publisher plugin
+        archiveArtifacts artifacts: 'dependency-check-report/*.*', fingerprint: true
         publishHTML(target: [
             allowMissing: false,
             alwaysLinkToLastBuild: true,
@@ -122,12 +120,8 @@ EOL
             reportFiles: 'dependency-check-report.html',
             reportName: 'OWASP Dependency-Check Report'
         ])
-
-        // Do NOT delete the reports here, keep them for Jenkins to display
-        // sh 'rm -rf dependency-check-report*'
     }
 }
-
         
     }
 }
