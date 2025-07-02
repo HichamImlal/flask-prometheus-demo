@@ -90,29 +90,44 @@ EOL
             }
         }
         stage('Dependency-Check') {
-            steps {
-                timeout(time: 30, unit: 'MINUTES') {
-                    script {
-                        withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
-                            dependencyCheck additionalArguments: """
-                                --scan ./ 
-                                --format XML 
-                                --out ./ 
-                                --disableArchive 
-                                --nvdApiKey ${NVD_API_KEY} 
-                                --data /var/lib/jenkins/dependency-check-data
-                                """,
-                                odcInstallation: 'dc'
-                        }
-                    }
+    steps {
+        timeout(time: 30, unit: 'MINUTES') {
+            script {
+                withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
+                    dependencyCheck additionalArguments: """
+                        --scan ./ 
+                        --format XML,HTML 
+                        --out ./dependency-check-report 
+                        --disableArchive 
+                        --nvdApiKey ${NVD_API_KEY} 
+                        --data /var/lib/jenkins/dependency-check-data
+                        """,
+                        odcInstallation: 'dc'
                 }
-                
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                
-                // Cleanup
-                sh 'rm -rf dependency-check-report.xml*'
             }
         }
+        
+        // Publish the XML report to Jenkins UI (optional)
+        dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
+
+        // Archive XML report as artifact (optional)
+        archiveArtifacts artifacts: 'dependency-check-report/dependency-check-report.xml', fingerprint: true
+
+        // Publish the HTML report via Jenkins HTML Publisher plugin
+        publishHTML(target: [
+            allowMissing: false,
+            alwaysLinkToLastBuild: true,
+            keepAll: true,
+            reportDir: 'dependency-check-report',
+            reportFiles: 'dependency-check-report.html',
+            reportName: 'OWASP Dependency-Check Report'
+        ])
+
+        // Do NOT delete the reports here, keep them for Jenkins to display
+        // sh 'rm -rf dependency-check-report*'
+    }
+}
+
         
     }
 }
