@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         SONAR_HOST_URL = "http://192.168.214.128:9000"
-        SONAR_TOKEN = credentials('sonar')
+        SONAR_TOKEN = credentials('SonarQube')
         NVD_API_KEY = credentials('nvd')
     }
     stages {
