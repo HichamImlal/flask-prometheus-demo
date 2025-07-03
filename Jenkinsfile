@@ -39,11 +39,8 @@ pipeline {
     steps {
         sh '''
             set -e
-
-            python3 -m pip install pytest pytest-cov
-
+            python3 -m pip install -r requirements.txt  # Install all deps
             mkdir -p tests
-
             if [ ! -f "tests/test_app.py" ]; then
                 cat > tests/test_app.py <<EOL
 from app import app
@@ -65,22 +62,11 @@ def test_metrics_endpoint(client):
     assert b'flask_http_request_total' in response.data
 EOL
             fi
-
             echo "🚀 Running tests..."
             python3 -m pytest tests/ --junitxml=test-results.xml --cov=app --cov-report=xml:coverage.xml
         '''
     }
-    post {
-        always {
-            junit 'test-results.xml'
-            archiveArtifacts artifacts: 'test-results.xml,coverage.xml', allowEmptyArchive: true
-        }
-        failure {
-            echo "❌ Tests failed. Check logs for details."
-        }
-    }
 }
-
         
         stage('SonarQube Analysis') {
             steps {
