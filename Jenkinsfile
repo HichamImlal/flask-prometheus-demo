@@ -78,8 +78,8 @@ EOL
                 withSonarQubeEnv('sonar-docker') {
                     sh '''
                     /opt/sonar-scanner/bin/sonar-scanner \
-                    -Dsonar.projectKey=Flask-demo-token \
-                    -Dsonar.projectName=Flask-demo-token \
+                    -Dsonar.projectKey=SonarDemo \
+                    -Dsonar.projectName=SonarDemo \
                     -Dsonar.sources=. \
                     -Dsonar.python.version=3 \
                     -Dsonar.host.url=${SONAR_HOST_URL} \
