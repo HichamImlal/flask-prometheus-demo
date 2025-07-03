@@ -143,12 +143,10 @@ followSymlinks: false, onlyIfSuccessful: true
 sh ' rm -rf sbom*' 
 } 
 } 
-    stages {
         stage('Secret Detection') {
             steps {
                 sh '/var/lib/jenkins/detect-secrets-venv/bin/detect-secrets scan --all-files > secrets.txt'
             }
         }
-    }
     }
 }
