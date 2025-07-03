@@ -1,5 +1,8 @@
-flask==0.10.1
-requests==2.11.1
-pyyaml==3.11
-jinja2==2.7.3
-urllib3==1.22
+flask==2.3.2          # Modern Flask (LTS version)
+jinja2==3.1.2         # Compatible with Flask 2.x
+werkzeug==2.3.7       # Required for Flask
+requests==2.31.0      # Modern requests (security fixes)
+pyyaml==6.0.1         # Latest stable PyYAML
+urllib3==2.0.7        # Latest stable urllib3
+pytest==8.4.1         # For testing
+pytest-cov==4.1.0     # For coverage reports
