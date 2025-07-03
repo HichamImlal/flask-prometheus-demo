@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        SONAR_HOST_URL = "http://192.168.214.128:9000"
+        SONAR_HOST_URL = "http://192.168.214.136:9000"
         SONAR_TOKEN = credentials('SonarQube')
         NVD_API_KEY = credentials('nvd')
     }
@@ -132,6 +132,16 @@ EOL
         ])
     }
 }
-        
+        stage('Generate SBOM') { 
+steps { 
+sh ''' 
+syft scan dir:. --output cyclonedx-json=sbom.json 
+''' 
+archiveArtifacts allowEmptyArchive: true, 
+artifacts: 'sbom*', fingerprint: true, 
+followSymlinks: false, onlyIfSuccessful: true 
+sh ' rm -rf sbom*' 
+} 
+} 
     }
 }
