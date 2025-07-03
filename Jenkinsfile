@@ -36,12 +36,14 @@ pipeline {
         }
         
         stage('Test') {
-            steps {
-                sh '''
-                mkdir -p tests
-                
-                if [ ! -f "tests/test_app.py" ]; then
-                    cat > tests/test_app.py <<EOL
+    steps {
+        sh '''
+            set -e  # Stop the script if any command fails
+
+            mkdir -p tests
+
+            if [ ! -f "tests/test_app.py" ]; then
+                cat > tests/test_app.py <<EOL
 from app import app
 import pytest
 
@@ -60,18 +62,24 @@ def test_metrics_endpoint(client):
     assert response.status_code == 200
     assert b'flask_http_request_total' in response.data
 EOL
-                fi
+            fi
 
-                python3 -m pytest tests/ --junitxml=test-results.xml --cov=app --cov-report=xml:coverage.xml || echo "Pytest completed"
-                '''
-            }
-            post {
-                always {
-                    junit 'test-results.xml'
-                    archiveArtifacts artifacts: 'test-results.xml,coverage.xml', allowEmptyArchive: true
-                }
-            }
+            echo "🚀 Running tests..."
+            python3 -m pytest tests/ --junitxml=test-results.xml --cov=app --cov-report=xml:coverage.xml
+        '''
+    }
+    post {
+        always {
+            // Archive test and coverage results
+            junit 'test-results.xml'
+            archiveArtifacts artifacts: 'test-results.xml,coverage.xml', allowEmptyArchive: true
         }
+        failure {
+            echo "❌ Tests failed. Check logs for details."
+        }
+    }
+}
+
         
         stage('SonarQube Analysis') {
             steps {
