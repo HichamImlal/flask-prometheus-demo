@@ -38,7 +38,9 @@ pipeline {
         stage('Test') {
     steps {
         sh '''
-            set -e  # Stop the script if any command fails
+            set -e
+
+            python3 -m pip install pytest pytest-cov
 
             mkdir -p tests
 
@@ -70,7 +72,6 @@ EOL
     }
     post {
         always {
-            // Archive test and coverage results
             junit 'test-results.xml'
             archiveArtifacts artifacts: 'test-results.xml,coverage.xml', allowEmptyArchive: true
         }
