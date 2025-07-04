@@ -149,7 +149,7 @@ EOL
             steps {
                 script {
                     // Build the Docker image
-                    sh 'docker build -t demostoreino:latest .'
+                    sh 'sudo docker build -t demostoreino:latest .'
                     
                     // Scan with Trivy (text report)
                     sh '''
