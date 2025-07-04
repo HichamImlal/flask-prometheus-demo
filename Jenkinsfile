@@ -69,21 +69,23 @@ EOL
 }
         
         stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonar-docker') {
-                    sh '''
-                    /opt/sonar-scanner/bin/sonar-scanner \
-                    -Dsonar.projectKey=SonarDemo \
-                    -Dsonar.projectName=SonarDemo \
-                    -Dsonar.sources=. \
-                    -Dsonar.python.version=3 \
-                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=${SONAR_TOKEN} \
-                    -Dsonar.python.coverage.reportPaths=coverage.xml
-                    '''
-                }
-            }
+    steps {
+        withSonarQubeEnv('sonar-docker') {
+            sh '''
+            /opt/sonar-scanner/bin/sonar-scanner \
+              -Dsonar.projectKey=SonarDemo \
+              -Dsonar.projectName=SonarDemo \
+              -Dsonar.sources=. \
+              -Dsonar.exclusions=snyk-venv/**,**/__pycache__/**,**/*.py[cod] \
+              -Dsonar.python.version=3 \
+              -Dsonar.host.url=${SONAR_HOST_URL} \
+              -Dsonar.login=${SONAR_TOKEN} \
+              -Dsonar.python.coverage.reportPaths=coverage.xml \
+              -Dsonar.scm.disabled=true
+            '''
         }
+    }
+}
         stage('Dependency-Check') {
     steps {
         timeout(time: 30, unit: 'MINUTES') {
