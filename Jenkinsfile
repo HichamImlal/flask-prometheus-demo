@@ -146,50 +146,31 @@ sh ' rm -rf sbom*'
         stage('SCA') {
     steps {
         script {
-            // Clean environment setup
+            // Use python3 explicitly
             sh '''
             echo "### Setting up clean environment ###"
-            python -m venv snyk-venv
+            python3 -m venv snyk-venv
             source snyk-venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
-            pip install snyk  # Ensure Snyk CLI is available
+            python3 -m pip install --upgrade pip
+            python3 -m pip install -r requirements.txt
+            python3 -m pip install snyk
             '''
             
-            // Debug information
+            // Verify installation
             sh '''
-            echo "\n### Environment Verification ###"
-            which python
-            python --version
-            pip list
-            echo "\n### Project Contents ###"
-            ls -la
+            echo "\n### Python Environment ###"
+            which python3
+            python3 --version
+            pip --version
             '''
             
-            // Run Snyk with full diagnostics
-            withCredentials([string(credentialsId: 'Snyk-Key', variable: 'SNYK_TOKEN')]) {
-                sh '''
-                source snyk-venv/bin/activate
-                snyk auth ${SNYK_TOKEN}
-                snyk test --command=python --file=requirements.txt --all-projects --debug > snyk-debug.log 2>&1 || true
-                cat snyk-debug.log
-                '''
-            }
-            
-            // Jenkins plugin fallback
+            // Run Snyk
             snykSecurity(
                 snykInstallation: 'Snyk',
                 snykTokenId: 'Snyk-Key',
-                additionalArguments: '--command=python --file=requirements.txt --strict-out-of-sync=false --all-projects --debug',
-                severity: 'high',
-                organization: 'your-org-name',
-                projectName: env.JOB_NAME.toLowerCase()
+                additionalArguments: '--command=python3 --file=requirements.txt --strict-out-of-sync=false --all-projects',
+                severity: 'high'
             )
-        }
-    }
-    post {
-        always {
-            archiveArtifacts artifacts: 'snyk-debug.log', allowEmptyArchive: true
         }
     }
 }
