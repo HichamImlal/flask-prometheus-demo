@@ -146,32 +146,28 @@ sh ' rm -rf sbom*'
         stage('SCA') {
     steps {
         script {
-            // Method 1: Using dot operator
+            // 1. Setup Python environment
             sh '''
-            echo "### Setting up clean environment ###"
             python3 -m venv snyk-venv
             . snyk-venv/bin/activate
-            python3 -m pip install --upgrade pip
             python3 -m pip install -r requirements.txt
-            python3 -m pip install snyk
             '''
             
-            // Method 2: Alternative activation
+            // 2. Install Snyk CLI
             sh '''
-            if [ -f "snyk-venv/bin/activate" ]; then
-                . snyk-venv/bin/activate
-                python3 -m pip list
-            else
-                echo "Virtual environment not found!"
-                exit 1
-            fi
+            # Download and install Snyk CLI
+            curl -s https://static.snyk.io/cli/latest/snyk-linux -o snyk
+            chmod +x snyk
+            mkdir -p ${HOME}/.local/bin
+            mv snyk ${HOME}/.local/bin/
+            export PATH=${HOME}/.local/bin:${PATH}
             '''
             
-            // Run Snyk
+            // 3. Run Snyk scan
             snykSecurity(
                 snykInstallation: 'Snyk',
                 snykTokenId: 'Snyk-Key',
-                additionalArguments: '--command=python3 --file=requirements.txt --strict-out-of-sync=false',
+                additionalArguments: '--command=python3 --file=requirements.txt --strict-out-of-sync=false --all-projects',
                 severity: 'high'
             )
         }
