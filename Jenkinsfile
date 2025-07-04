@@ -177,11 +177,6 @@ EOL
             }
         }
         
-    stage('Déployer avec Docker Compose') {
-            steps {
-                
-            }
-        }
         stage('Deploy with Docker Compose') {
     steps {
         echo '🟢 Deployment successful!'
