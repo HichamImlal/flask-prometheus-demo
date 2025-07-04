@@ -143,20 +143,55 @@ sh ' rm -rf sbom*'
                 sh '/var/lib/jenkins/detect-secrets-venv/bin/detect-secrets scan --all-files > secrets.txt'
             }
         }
-        stage('SCA') { 
-            steps { 
-                        script {
-                                    // First ensure dependencies are installed
-                                    sh 'pip install -r requirements.txt'
-                                    
-                                    // Then run Snyk with explicit Python configuration
-                                    snykSecurity(
-                                        snykInstallation: 'Snyk',
-                                        snykTokenId: 'Snyk-Key',
-                                        additionalArguments: '--command=python --file=requirements.txt --strict-out-of-sync=false',
-                                    )
-                                }
-            } 
+        stage('SCA') {
+    steps {
+        script {
+            // Clean environment setup
+            sh '''
+            echo "### Setting up clean environment ###"
+            python -m venv snyk-venv
+            source snyk-venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+            pip install snyk  # Ensure Snyk CLI is available
+            '''
+            
+            // Debug information
+            sh '''
+            echo "\n### Environment Verification ###"
+            which python
+            python --version
+            pip list
+            echo "\n### Project Contents ###"
+            ls -la
+            '''
+            
+            // Run Snyk with full diagnostics
+            withCredentials([string(credentialsId: 'Snyk-Key', variable: 'SNYK_TOKEN')]) {
+                sh '''
+                source snyk-venv/bin/activate
+                snyk auth ${SNYK_TOKEN}
+                snyk test --command=python --file=requirements.txt --all-projects --debug > snyk-debug.log 2>&1 || true
+                cat snyk-debug.log
+                '''
+            }
+            
+            // Jenkins plugin fallback
+            snykSecurity(
+                snykInstallation: 'Snyk',
+                snykTokenId: 'Snyk-Key',
+                additionalArguments: '--command=python --file=requirements.txt --strict-out-of-sync=false --all-projects --debug',
+                severity: 'high',
+                organization: 'your-org-name',
+                projectName: env.JOB_NAME.toLowerCase()
+            )
         }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'snyk-debug.log', allowEmptyArchive: true
+        }
+    }
+}
     }
 }
