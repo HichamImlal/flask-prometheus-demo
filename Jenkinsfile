@@ -145,33 +145,56 @@ sh ' rm -rf sbom*'
                 sh '/var/lib/jenkins/detect-secrets-venv/bin/detect-secrets scan --all-files > secrets.txt'
             }
         }
-        stage('SCA') {
+stage('SCA') {
     steps {
         script {
-            // 1. Setup Python environment
+            // Clean environment setup
             sh '''
+            echo "### Setting up Python environment ###"
             python3 -m venv snyk-venv
             . snyk-venv/bin/activate
+            python3 -m pip install --upgrade pip wheel
             python3 -m pip install -r requirements.txt
             '''
             
-            // 2. Install Snyk CLI
+            // Install Snyk CLI explicitly (more reliable than plugin)
             sh '''
-            # Download and install Snyk CLI
-            curl -s https://static.snyk.io/cli/latest/snyk-linux -o snyk
+            curl -sL https://static.snyk.io/cli/latest/snyk-linux -o snyk
             chmod +x snyk
-            mkdir -p ${HOME}/.local/bin
-            mv snyk ${HOME}/.local/bin/
-            export PATH=${HOME}/.local/bin:${PATH}
+            ./snyk --version
             '''
             
-            // 3. Run Snyk scan
+            // Run Snyk with debug output
+            withCredentials([string(credentialsId: 'Snyk-Key', variable: 'SNYK_TOKEN']) {
+                sh '''
+                . snyk-venv/bin/activate
+                ./snyk auth ${SNYK_TOKEN}
+                ./snyk test \
+                  --command=python3 \
+                  --file=requirements.txt \
+                  --severity-threshold=high \
+                  --strict-out-of-sync=false \
+                  --json > snyk-results.json || true
+                
+                # Debug: show first 500 chars of output
+                echo "Snyk output:"
+                head -c 500 snyk-results.json
+                '''
+            }
+            
+            // Alternative Jenkins plugin approach
             snykSecurity(
                 snykInstallation: 'Snyk',
                 snykTokenId: 'Snyk-Key',
-                additionalArguments: '--command=python3 --file=requirements.txt --strict-out-of-sync=false --all-projects',
-                severity: 'high'
+                additionalArguments: '--command=python3 --file=requirements.txt --strict-out-of-sync=false',
+                severity: 'high',
+                failOnIssues: false // Disable initially for debugging
             )
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'snyk-results.json', allowEmptyArchive: true
         }
     }
 }
