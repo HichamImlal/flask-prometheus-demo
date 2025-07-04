@@ -145,7 +145,7 @@ sh ' rm -rf sbom*'
         }
         stage('SCA') { 
 steps { 
-snykSecurity snykInstallation: 'Snyk ', snykTokenId: 
+snykSecurity snykInstallation: 'Snyk', snykTokenId: 
 'Snyk-Key' 
 } 
 }
