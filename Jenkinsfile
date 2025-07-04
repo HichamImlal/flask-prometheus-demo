@@ -144,10 +144,19 @@ sh ' rm -rf sbom*'
             }
         }
         stage('SCA') { 
-steps { 
-snykSecurity snykInstallation: 'Snyk', snykTokenId: 
-'Snyk-Key' 
-} 
-}
+            steps { 
+                        script {
+                                    // First ensure dependencies are installed
+                                    sh 'pip install -r requirements.txt'
+                                    
+                                    // Then run Snyk with explicit Python configuration
+                                    snykSecurity(
+                                        snykInstallation: 'Snyk',
+                                        snykTokenId: 'Snyk-Key',
+                                        additionalArguments: '--command=python --file=requirements.txt --strict-out-of-sync=false',
+                                    )
+                                }
+            } 
+        }
     }
 }
