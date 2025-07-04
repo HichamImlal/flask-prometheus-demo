@@ -143,5 +143,11 @@ sh ' rm -rf sbom*'
                 sh '/var/lib/jenkins/detect-secrets-venv/bin/detect-secrets scan --all-files > secrets.txt'
             }
         }
+        stage('SCA') { 
+steps { 
+snykSecurity snykInstallation: 'Snyk ', snykTokenId: 
+'Snyk-Key' 
+} 
+}
     }
 }
