@@ -36,13 +36,13 @@ pipeline {
         }
         
         stage('Test') {
-    steps {
-        sh '''
-            set -e
-            python3 -m pip install -r requirements.txt  # Install all deps
-            mkdir -p tests
-            if [ ! -f "tests/test_app.py" ]; then
-                cat > tests/test_app.py <<EOL
+            steps {
+                sh '''
+                    set -e
+                    python3 -m pip install -r requirements.txt  # Install all deps
+                    mkdir -p tests
+                    if [ ! -f "tests/test_app.py" ]; then
+                        cat > tests/test_app.py <<EOL
 from app import app
 import pytest
 
@@ -61,142 +61,141 @@ def test_metrics_endpoint(client):
     assert response.status_code == 200
     assert b'flask_http_request_total' in response.data
 EOL
-            fi
-            echo "🚀 Running tests..."
-            python3 -m pytest tests/ --junitxml=test-results.xml --cov=app --cov-report=xml:coverage.xml
-        '''
-    }
-}
+                    fi
+                    echo "🚀 Running tests..."
+                    python3 -m pytest tests/ --junitxml=test-results.xml --cov=app --cov-report=xml:coverage.xml
+                '''
+            }
+        }
         
         stage('SonarQube Analysis') {
-    steps {
-        withSonarQubeEnv('sonar-docker') {
-            sh '''
-            /opt/sonar-scanner/bin/sonar-scanner \
-              -Dsonar.projectKey=SonarDemo \
-              -Dsonar.projectName=SonarDemo \
-              -Dsonar.sources=. \
-              -Dsonar.exclusions=snyk-venv/**,**/__pycache__/**,**/*.py[cod] \
-              -Dsonar.python.version=3 \
-              -Dsonar.host.url=${SONAR_HOST_URL} \
-              -Dsonar.login=${SONAR_TOKEN} \
-              -Dsonar.python.coverage.reportPaths=coverage.xml \
-              -Dsonar.scm.disabled=true
-            '''
-        }
-    }
-}
-        stage('Dependency-Check') {
-    steps {
-        timeout(time: 30, unit: 'MINUTES') {
-            script {
-                withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
-                    // Secure way to pass arguments
-                    def additionalArgs = [
-                        '--scan', './',
-                        '--format', 'XML',
-                        '--format', 'HTML',
-                        '--out', './dependency-check-report',
-                        '--enableExperimental',
-                        '--disableArchive',
-                        '--data', '/var/lib/jenkins/dependency-check-data',
-                        '--project', 'Flask-demo-token'
-                    ]
-                    
-                    // Only add NVD API key if it exists
-                    if (NVD_API_KEY) {
-                        additionalArgs.addAll(['--nvdApiKey', NVD_API_KEY])
-                    }
-                    
-                    dependencyCheck(
-                        additionalArguments: additionalArgs.join(' '),
-                        odcInstallation: 'dc'
-                    )
+            steps {
+                withSonarQubeEnv('sonar-docker') {
+                    sh '''
+                    /opt/sonar-scanner/bin/sonar-scanner \
+                      -Dsonar.projectKey=SonarDemo \
+                      -Dsonar.projectName=SonarDemo \
+                      -Dsonar.sources=. \
+                      -Dsonar.exclusions=snyk-venv/**,**/__pycache__/**,**/*.py[cod] \
+                      -Dsonar.python.version=3 \
+                      -Dsonar.host.url=${SONAR_HOST_URL} \
+                      -Dsonar.login=${SONAR_TOKEN} \
+                      -Dsonar.python.coverage.reportPaths=coverage.xml \
+                      -Dsonar.scm.disabled=true
+                    '''
                 }
             }
         }
 
-        // Publish results
-        dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
-        archiveArtifacts artifacts: 'dependency-check-report/*.*', fingerprint: true
-        publishHTML(target: [
-            allowMissing: false,
-            alwaysLinkToLastBuild: true,
-            keepAll: true,
-            reportDir: 'dependency-check-report',
-            reportFiles: 'dependency-check-report.html',
-            reportName: 'OWASP Dependency-Check Report'
-        ])
-    }
-}
+        stage('Dependency-Check') {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    script {
+                        withEnv(["JAVA_OPTS=-Xmx4g -XX:MaxRAMPercentage=75.0"]) {
+                            def additionalArgs = [
+                                '--scan', './',
+                                '--format', 'XML',
+                                '--format', 'HTML',
+                                '--out', './dependency-check-report',
+                                '--enableExperimental',
+                                '--disableArchive',
+                                '--data', '/var/lib/jenkins/dependency-check-data',
+                                '--project', 'Flask-demo-token'
+                            ]
+                            
+                            if (NVD_API_KEY) {
+                                additionalArgs.addAll(['--nvdApiKey', NVD_API_KEY])
+                            }
+                            
+                            dependencyCheck(
+                                additionalArguments: additionalArgs.join(' '),
+                                odcInstallation: 'dc'
+                            )
+                        }
+                    }
+                }
+                dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
+                archiveArtifacts artifacts: 'dependency-check-report/*.*', fingerprint: true
+                publishHTML(target: [
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'dependency-check-report',
+                    reportFiles: 'dependency-check-report.html',
+                    reportName: 'OWASP Dependency-Check Report'
+                ])
+            }
+        }
+
         stage('Generate SBOM') { 
-steps { 
-sh ''' 
-syft scan dir:. --output cyclonedx-json=sbom.json 
-''' 
-archiveArtifacts allowEmptyArchive: true, 
-artifacts: 'sbom*', fingerprint: true, 
-followSymlinks: false, onlyIfSuccessful: true 
-sh ' rm -rf sbom*' 
-} 
-} 
+            steps { 
+                sh ''' 
+                syft scan dir:. --output cyclonedx-json=sbom.json 
+                ''' 
+                archiveArtifacts allowEmptyArchive: true, 
+                    artifacts: 'sbom*', fingerprint: true, 
+                    followSymlinks: false, onlyIfSuccessful: true 
+                sh 'rm -rf sbom*' 
+            } 
+        } 
+
         stage('Secret Detection') {
             steps {
                 sh '/var/lib/jenkins/detect-secrets-venv/bin/detect-secrets scan --all-files > secrets.txt'
             }
         }
-stage('SCA') {
-    steps {
-        script {
-            // Clean environment setup
-            sh '''
-            echo "### Setting up Python environment ###"
-            python3 -m venv snyk-venv
-            . snyk-venv/bin/activate
-            python3 -m pip install --upgrade pip wheel
-            python3 -m pip install -r requirements.txt
-            '''
-            
-            // Install Snyk CLI explicitly (more reliable than plugin)
-            sh '''
-            curl -sL https://static.snyk.io/cli/latest/snyk-linux -o snyk
-            chmod +x snyk
-            ./snyk --version
-            '''
-            
-            // Run Snyk with debug output
-            withCredentials([string(credentialsId: 'Snyk-Key', variable: 'SNYK_TOKEN']) {
-                sh '''
-                . snyk-venv/bin/activate
-                ./snyk auth ${SNYK_TOKEN}
-                ./snyk test \
-                  --command=python3 \
-                  --file=requirements.txt \
-                  --severity-threshold=high \
-                  --strict-out-of-sync=false \
-                  --json > snyk-results.json || true
-                
-                # Debug: show first 500 chars of output
-                echo "Snyk output:"
-                head -c 500 snyk-results.json
-                '''
+
+        stage('SCA') {
+            steps {
+                script {
+                    // Clean environment setup
+                    sh '''
+                    echo "### Setting up Python environment ###"
+                    python3 -m venv snyk-venv
+                    . snyk-venv/bin/activate
+                    python3 -m pip install --upgrade pip wheel
+                    python3 -m pip install -r requirements.txt
+                    '''
+                    
+                    // Install Snyk CLI explicitly
+                    sh '''
+                    curl -sL https://static.snyk.io/cli/latest/snyk-linux -o snyk
+                    chmod +x snyk
+                    ./snyk --version
+                    '''
+                    
+                    // Run Snyk with debug output - FIXED THIS BLOCK
+                    withCredentials([string(credentialsId: 'Snyk-Key', variable: 'SNYK_TOKEN')]) {
+                        sh '''
+                        . snyk-venv/bin/activate
+                        ./snyk auth ${SNYK_TOKEN}
+                        ./snyk test \
+                          --command=python3 \
+                          --file=requirements.txt \
+                          --severity-threshold=high \
+                          --strict-out-of-sync=false \
+                          --json > snyk-results.json || true
+                        
+                        echo "Snyk output:"
+                        head -c 500 snyk-results.json
+                        '''
+                    }
+                    
+                    // Jenkins plugin approach
+                    snykSecurity(
+                        snykInstallation: 'Snyk',
+                        snykTokenId: 'Snyk-Key',
+                        additionalArguments: '--command=python3 --file=requirements.txt --strict-out-of-sync=false',
+                        severity: 'high',
+                        failOnIssues: false
+                    )
+                }
             }
-            
-            // Alternative Jenkins plugin approach
-            snykSecurity(
-                snykInstallation: 'Snyk',
-                snykTokenId: 'Snyk-Key',
-                additionalArguments: '--command=python3 --file=requirements.txt --strict-out-of-sync=false',
-                severity: 'high',
-                failOnIssues: false // Disable initially for debugging
-            )
+            post {
+                always {
+                    archiveArtifacts artifacts: 'snyk-results.json', allowEmptyArchive: true
+                }
+            }
         }
-    }
-    post {
-        always {
-            archiveArtifacts artifacts: 'snyk-results.json', allowEmptyArchive: true
-        }
-    }
-}
     }
 }
