@@ -145,5 +145,37 @@ EOL
             }
         }
 
+        stage('Container Security') {
+            steps {
+                script {
+                    // Build the Docker image
+                    sh 'docker build -t demostoreino:latest .'
+                    
+                    // Scan with Trivy (text report)
+                    sh '''
+                        trivy image \
+                            --format table \
+                            --output trivy-report.txt \
+                            demostoreino:latest || echo "Trivy scan completed (exit code ignored)"
+                    '''
+                    
+                    // Scan with Trivy (HTML report - ensure template exists)
+                    sh '''
+                        trivy image \
+                            --format template \
+                            --template "@/usr/local/share/trivy/templates/html.tpl" \
+                            --output trivy-report.html \
+                            demostoreino:latest || true
+                    '''
+                    
+                    // Archive both reports
+                    archiveArtifacts artifacts: 'trivy-report.*', fingerprint: true
+                    
+                    // Clean up (optional)
+                    sh 'rm -f trivy-report.*'
+                }
+            }
+        }
+
     }
 }
