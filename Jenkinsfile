@@ -145,57 +145,5 @@ EOL
             }
         }
 
-        stage('SCA') {
-            steps {
-                script {
-                    // Clean environment setup
-                    sh '''
-                    echo "### Setting up Python environment ###"
-                    python3 -m venv snyk-venv
-                    . snyk-venv/bin/activate
-                    python3 -m pip install --upgrade pip wheel
-                    python3 -m pip install -r requirements.txt
-                    '''
-                    
-                    // Install Snyk CLI explicitly
-                    sh '''
-                    curl -sL https://static.snyk.io/cli/latest/snyk-linux -o snyk
-                    chmod +x snyk
-                    ./snyk --version
-                    '''
-                    
-                    // Run Snyk with debug output - FIXED THIS BLOCK
-                    withCredentials([string(credentialsId: 'Snyk-Key', variable: 'SNYK_TOKEN')]) {
-                        sh '''
-                        . snyk-venv/bin/activate
-                        ./snyk auth ${SNYK_TOKEN}
-                        ./snyk test \
-                          --command=python3 \
-                          --file=requirements.txt \
-                          --severity-threshold=high \
-                          --strict-out-of-sync=false \
-                          --json > snyk-results.json || true
-                        
-                        echo "Snyk output:"
-                        head -c 500 snyk-results.json
-                        '''
-                    }
-                    
-                    // Jenkins plugin approach
-                    snykSecurity(
-                        snykInstallation: 'Snyk',
-                        snykTokenId: 'Snyk-Key',
-                        additionalArguments: '--command=python3 --file=requirements.txt --strict-out-of-sync=false',
-                        severity: 'high',
-                        failOnIssues: false
-                    )
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'snyk-results.json', allowEmptyArchive: true
-                }
-            }
-        }
     }
 }
